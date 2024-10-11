@@ -1,0 +1,8 @@
+[package]
+name = "relish"
+version = "0.1.0"
+edition = "2021"
+rust-vesion = {workspace=true}
+
+[dependencies]
+bit-vec = "0.8.0"
