@@ -1,39 +1,35 @@
-pub trait CA {
+use core::panic;
+
+pub trait CellularAutomaton {
     fn step(&mut self) -> usize;
 }
 
-pub struct ElementaryCA {
+#[derive(Debug, Clone)]
+pub struct CellularAutomaton1dError;
+
+pub struct CellularAutomaton1d<const S: usize> {
     world: Vec<bool>,
-    prev_world: Vec<bool>,
     generation: usize,
-    pattern: u8,
+    evolvution_fn: Box<dyn Fn([bool; S]) -> bool>,
+    neighborhood_fn: Box<dyn Fn(&[bool], usize) -> [bool; S]>,
 }
 
-#[derive(Debug, Clone)]
-pub struct ElementaryCAError;
-
-impl ElementaryCA {
-    pub fn new(world: Vec<bool>, pattern: u8) -> Result<Self, ElementaryCAError> {
-        if (world.len()) < 3 {
-            return Err(ElementaryCAError);
+impl<const S: usize> CellularAutomaton1d<S> {
+    pub fn new(
+        world: Vec<bool>,
+        evolvution_fn: impl Fn([bool; S]) -> bool + 'static,
+        neighborhood_fn: impl Fn(&[bool], usize) -> [bool; S] + 'static,
+    ) -> Result<Self, CellularAutomaton1dError> {
+        if world.len() < S {
+            return Err(CellularAutomaton1dError);
         }
 
-        let prev_world = world.clone();
         Ok(Self {
             world,
-            prev_world,
             generation: 0,
-            pattern,
+            evolvution_fn: Box::new(evolvution_fn),
+            neighborhood_fn: Box::new(neighborhood_fn),
         })
-    }
-
-    fn evolve(&self, values: [bool; 3]) -> bool {
-        let mut val = (values[0] as u8) << 2;
-        val |= (values[1] as u8) << 1;
-        val |= values[2] as u8;
-
-        let (v, _) = self.pattern.overflowing_shr((val).into());
-        (v & 1) != 0
     }
 
     pub fn width(&self) -> usize {
@@ -44,26 +40,54 @@ impl ElementaryCA {
         self.generation
     }
 
-    pub fn pattern(&self) -> u8 {
-        self.pattern
-    }
-
     pub fn world(&self) -> Vec<bool> {
         self.world.clone()
     }
 }
 
-impl CA for ElementaryCA {
+impl<const S: usize> CellularAutomaton for CellularAutomaton1d<S> {
     fn step(&mut self) -> usize {
-        self.prev_world = self.world.clone();
+        let prev_world = &self.world.clone()[..];
         for i in 1..self.width() - 1 {
             // TODO: fix this and rewrite in a way that is clearer and doesn't
             // have an unhandled panic
-            self.world[i] = self.evolve(*self.prev_world[i - 1..].first_chunk::<3>().unwrap());
+            let neighbors = (self.neighborhood_fn)(prev_world, i);
+            self.world[i] = (self.evolvution_fn)(neighbors);
         }
         self.generation += 1;
         self.generation
     }
+}
+
+fn elementary_evolve_builder(pattern: u8) -> impl Fn([bool; 3]) -> bool {
+    move |values: [bool; 3]| {
+        let mut val = (values[0] as u8) << 2;
+        val |= (values[1] as u8) << 1;
+        val |= values[2] as u8;
+
+        let (v, _) = pattern.overflowing_shr((val).into());
+        (v & 1) != 0
+    }
+}
+
+fn elementary_neighbor_fn(world: &[bool], i: usize) -> [bool; 3] {
+    if i < 1 || i > (world.len() - 1) {
+        panic!("elementary_neighbor_fn out of bounds");
+    }
+
+    [world[i - 1], world[i], world[i + 1]]
+}
+
+#[allow(non_snake_case)]
+pub fn ElementaryCellularAutomaton(
+    world: Vec<bool>,
+    pattern: u8,
+) -> Result<CellularAutomaton1d<3>, CellularAutomaton1dError> {
+    CellularAutomaton1d::<3>::new(
+        world,
+        elementary_evolve_builder(pattern),
+        elementary_neighbor_fn,
+    )
 }
 
 #[cfg(test)]
@@ -73,12 +97,11 @@ mod tests {
     #[test]
     fn test_new() {
         let bv = vec![false; 10];
-        let result = ElementaryCA::new(bv, 12);
+        let result = ElementaryCellularAutomaton(bv, 12);
         assert!(result.is_ok());
 
         let elem_ca = result.unwrap();
         assert_eq!(elem_ca.width(), 10);
-        assert_eq!(elem_ca.pattern(), 12);
     }
 
     #[test]
@@ -89,7 +112,7 @@ mod tests {
         let mut expected = vec![false; 13];
         expected[6] = true;
 
-        let result = ElementaryCA::new(bv, 30);
+        let result = ElementaryCellularAutomaton(bv, 30);
         assert!(result.is_ok());
 
         let mut elem_ca = result.unwrap();
@@ -114,7 +137,7 @@ mod tests {
     #[test]
     fn test_invalid_world_size() {
         let bv = vec![true, false];
-        let result = ElementaryCA::new(bv, 1);
+        let result = ElementaryCellularAutomaton(bv, 1);
 
         assert!(result.is_err());
     }

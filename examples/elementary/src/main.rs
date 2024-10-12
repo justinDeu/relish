@@ -1,4 +1,4 @@
-use relish::{ElementaryCA, CA};
+use relish::{CellularAutomaton, ElementaryCellularAutomaton};
 
 const NUM_STEPS: usize = 40;
 const WORLD_SIZE: usize = 50;
@@ -15,7 +15,7 @@ fn main() {
     let mut bv = vec![false; WORLD_SIZE];
     bv[WORLD_SIZE.div_ceil(2) + 1] = true;
 
-    let mut ca = match ElementaryCA::new(bv, PATTERN) {
+    let mut ca = match ElementaryCellularAutomaton(bv, PATTERN) {
         Ok(r) => r,
         Err(_) => panic!("world size is no good"),
     };
