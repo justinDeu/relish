@@ -15,7 +15,10 @@ fn main() {
     let mut bv = vec![false; WORLD_SIZE];
     bv[WORLD_SIZE.div_ceil(2) + 1] = true;
 
-    let mut ca = ElementaryCA::new(bv, PATTERN);
+    let mut ca = match ElementaryCA::new(bv, PATTERN) {
+        Ok(r) => r,
+        Err(_) => panic!("world size is no good"),
+    };
     print!("{:>2}\u{2595}", ca.age());
     print_world(&ca.world()[..]);
     println!();

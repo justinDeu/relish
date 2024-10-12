@@ -5,19 +5,26 @@ pub trait CA {
 pub struct ElementaryCA {
     world: Vec<bool>,
     prev_world: Vec<bool>,
-    age: usize,
+    generation: usize,
     pattern: u8,
 }
 
+#[derive(Debug, Clone)]
+pub struct ElementaryCAError;
+
 impl ElementaryCA {
-    pub fn new(world: Vec<bool>, pattern: u8) -> Self {
+    pub fn new(world: Vec<bool>, pattern: u8) -> Result<Self, ElementaryCAError> {
+        if (world.len()) < 3 {
+            return Err(ElementaryCAError);
+        }
+
         let prev_world = world.clone();
-        Self {
+        Ok(Self {
             world,
             prev_world,
-            age: 0,
+            generation: 0,
             pattern,
-        }
+        })
     }
 
     fn evolve(&self, values: [bool; 3]) -> bool {
@@ -34,7 +41,7 @@ impl ElementaryCA {
     }
 
     pub fn age(&self) -> usize {
-        self.age
+        self.generation
     }
 
     pub fn pattern(&self) -> u8 {
@@ -54,8 +61,8 @@ impl CA for ElementaryCA {
             // have an unhandled panic
             self.world[i] = self.evolve(*self.prev_world[i - 1..].first_chunk::<3>().unwrap());
         }
-        self.age += 1;
-        self.age
+        self.generation += 1;
+        self.generation
     }
 }
 
@@ -66,7 +73,10 @@ mod tests {
     #[test]
     fn test_new() {
         let bv = vec![false; 10];
-        let elem_ca = ElementaryCA::new(bv, 12);
+        let result = ElementaryCA::new(bv, 12);
+        assert!(result.is_ok());
+
+        let elem_ca = result.unwrap();
         assert_eq!(elem_ca.width(), 10);
         assert_eq!(elem_ca.pattern(), 12);
     }
@@ -79,8 +89,10 @@ mod tests {
         let mut expected = vec![false; 13];
         expected[6] = true;
 
-        let mut elem_ca = ElementaryCA::new(bv, 30);
+        let result = ElementaryCA::new(bv, 30);
+        assert!(result.is_ok());
 
+        let mut elem_ca = result.unwrap();
         assert_eq!(elem_ca.world(), expected);
 
         elem_ca.step();
@@ -97,5 +109,13 @@ mod tests {
         expected[7] = false;
         expected[8] = true;
         assert_eq!(elem_ca.world(), expected);
+    }
+
+    #[test]
+    fn test_invalid_world_size() {
+        let bv = vec![true, false];
+        let result = ElementaryCA::new(bv, 1);
+
+        assert!(result.is_err());
     }
 }
