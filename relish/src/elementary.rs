@@ -1,7 +1,7 @@
 #[allow(unused_imports)]
 use crate::automaton::CellularAutomaton;
 
-use crate::automaton::{CellularAutomaton1d, CellularAutomaton1dError};
+use crate::automaton::{CellularAutomaton1d, CellularAutomatonWorldSizeError, Neighbors1d};
 
 fn elementary_evolve_builder(pattern: u8) -> impl Fn([bool; 3]) -> bool {
     move |values: [bool; 3]| {
@@ -14,19 +14,19 @@ fn elementary_evolve_builder(pattern: u8) -> impl Fn([bool; 3]) -> bool {
     }
 }
 
-fn elementary_neighbor_fn(world: &[bool], i: usize) -> [bool; 3] {
-    if i < 1 || i > (world.len() - 1) {
-        panic!("elementary_neighbor_fn out of bounds");
+fn elementary_neighbor_fn(world: &[bool], i: usize) -> Neighbors1d<3> {
+    if i < 1 || i > (world.len() - 2) {
+        return Neighbors1d::Edge;
     }
 
-    [world[i - 1], world[i], world[i + 1]]
+    Neighbors1d::Neighborhood([world[i - 1], world[i], world[i + 1]])
 }
 
 #[allow(non_snake_case)]
 pub fn ElementaryCellularAutomaton(
     world: Vec<bool>,
     pattern: u8,
-) -> Result<CellularAutomaton1d<3>, CellularAutomaton1dError> {
+) -> Result<CellularAutomaton1d<3>, CellularAutomatonWorldSizeError> {
     CellularAutomaton1d::<3>::new(
         world,
         elementary_evolve_builder(pattern),
@@ -45,7 +45,7 @@ mod tests {
         assert!(result.is_ok());
 
         let elem_ca = result.unwrap();
-        assert_eq!(elem_ca.width(), 10);
+        assert_eq!(elem_ca.size(), vec![10]);
     }
 
     #[test]
