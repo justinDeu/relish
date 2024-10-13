@@ -1,7 +1,9 @@
 #[allow(unused_imports)]
 use crate::automaton::CellularAutomaton;
 
-use crate::automaton::{CellularAutomaton1d, CellularAutomatonWorldSizeError, Neighbors1d};
+use crate::automaton::CellularAutomatonWorldSizeError;
+
+use crate::dim1::{CellularAutomaton1d, Neighbors1d};
 
 fn elementary_evolve_builder(pattern: u8) -> impl Fn([bool; 3]) -> bool {
     move |values: [bool; 3]| {
