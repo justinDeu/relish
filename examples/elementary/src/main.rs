@@ -1,4 +1,5 @@
-use relish::{CellularAutomaton, ElementaryCellularAutomaton};
+use relish::automaton::CellularAutomaton;
+use relish::elementary::ElementaryCellularAutomaton;
 
 const NUM_STEPS: usize = 40;
 const WORLD_SIZE: usize = 50;
