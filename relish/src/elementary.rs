@@ -16,7 +16,7 @@ fn elementary_evolve_builder(pattern: u8) -> impl Fn([bool; 3]) -> bool {
     }
 }
 
-fn elementary_neighbor_fn(world: &[bool], i: usize) -> Neighbors1d<3> {
+fn elementary_neighbor_fn(world: &[bool], i: usize) -> Neighbors1d<bool, 3> {
     if i < 1 || i > (world.len() - 2) {
         return Neighbors1d::Edge;
     }
@@ -28,8 +28,8 @@ fn elementary_neighbor_fn(world: &[bool], i: usize) -> Neighbors1d<3> {
 pub fn ElementaryCellularAutomaton(
     world: Vec<bool>,
     pattern: u8,
-) -> Result<CellularAutomaton1d<3>, CellularAutomatonWorldSizeError> {
-    CellularAutomaton1d::<3>::new(
+) -> Result<CellularAutomaton1d<bool, 3>, CellularAutomatonWorldSizeError> {
+    CellularAutomaton1d::<bool, 3>::new(
         world,
         elementary_evolve_builder(pattern),
         elementary_neighbor_fn,

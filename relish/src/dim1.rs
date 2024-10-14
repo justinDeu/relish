@@ -1,24 +1,24 @@
 use crate::automaton::{CellularAutomaton, CellularAutomatonWorldSizeError};
 
-pub enum Neighbors1d<const S: usize> {
-    Neighborhood([bool; S]),
+pub enum Neighbors1d<CellType, const WIDTH: usize> {
+    Neighborhood([CellType; WIDTH]),
     Edge,
 }
 
-pub struct CellularAutomaton1d<const S: usize> {
-    world: Vec<bool>,
+pub struct CellularAutomaton1d<CellType: Clone, const WIDTH: usize> {
+    world: Vec<CellType>,
     generation: usize,
-    evolvution_fn: Box<dyn Fn([bool; S]) -> bool>,
-    neighborhood_fn: Box<dyn Fn(&[bool], usize) -> Neighbors1d<S>>,
+    evolvution_fn: Box<dyn Fn([CellType; WIDTH]) -> CellType>,
+    neighborhood_fn: Box<dyn Fn(&[CellType], usize) -> Neighbors1d<CellType, WIDTH>>,
 }
 
-impl<const S: usize> CellularAutomaton1d<S> {
+impl<CellType: Clone, const WIDTH: usize> CellularAutomaton1d<CellType, WIDTH> {
     pub fn new(
-        world: Vec<bool>,
-        evolvution_fn: impl Fn([bool; S]) -> bool + 'static,
-        neighborhood_fn: impl Fn(&[bool], usize) -> Neighbors1d<S> + 'static,
+        world: Vec<CellType>,
+        evolvution_fn: impl Fn([CellType; WIDTH]) -> CellType + 'static,
+        neighborhood_fn: impl Fn(&[CellType], usize) -> Neighbors1d<CellType, WIDTH> + 'static,
     ) -> Result<Self, CellularAutomatonWorldSizeError> {
-        if world.len() < S {
+        if world.len() < WIDTH {
             return Err(CellularAutomatonWorldSizeError);
         }
 
@@ -29,20 +29,20 @@ impl<const S: usize> CellularAutomaton1d<S> {
             neighborhood_fn: Box::new(neighborhood_fn),
         })
     }
-
-    pub fn world(&self) -> Vec<bool> {
-        self.world.clone()
-    }
 }
 
-impl<const S: usize> CellularAutomaton for CellularAutomaton1d<S> {
+impl<CellType: Clone, const WIDTH: usize> CellularAutomaton
+    for CellularAutomaton1d<CellType, WIDTH>
+{
+    type WorldType = Vec<CellType>;
+
     fn step(&mut self) -> usize {
         let prev_world = &self.world.clone()[..];
 
         self.world = (0..self.size()[0])
             .map(|i| match (self.neighborhood_fn)(prev_world, i) {
                 Neighbors1d::Neighborhood(neighbors) => (self.evolvution_fn)(neighbors),
-                Neighbors1d::Edge => prev_world[i],
+                Neighbors1d::Edge => prev_world[i].clone(),
             })
             .collect();
         self.generation += 1;
@@ -56,10 +56,10 @@ impl<const S: usize> CellularAutomaton for CellularAutomaton1d<S> {
     fn age(&self) -> usize {
         self.generation
     }
+    fn world(&self) -> Self::WorldType {
+        self.world.clone()
+    }
 }
-
-/*
-*/
 
 #[cfg(test)]
 mod tests {
@@ -68,7 +68,7 @@ mod tests {
     #[test]
     fn test_ca1d_flipper() {
         let bv = vec![false; 10];
-        let mut ca = CellularAutomaton1d::<1>::new(
+        let mut ca = CellularAutomaton1d::<bool, 1>::new(
             bv,
             |x| !x[0],
             |world, i| Neighbors1d::Neighborhood([world[i]]),
@@ -83,7 +83,7 @@ mod tests {
     #[test]
     fn test_ca1d_shifter() {
         let bv = vec![false, true, false, true];
-        let mut ca = CellularAutomaton1d::<1>::new(
+        let mut ca = CellularAutomaton1d::<bool, 1>::new(
             bv,
             |x| x[0],
             |world, i| {
@@ -104,7 +104,7 @@ mod tests {
     #[test]
     fn test_ca1d_and_prev() {
         let bv = vec![false, true, true, false];
-        let mut ca = CellularAutomaton1d::<2>::new(
+        let mut ca = CellularAutomaton1d::<bool, 2>::new(
             bv,
             |x| x[0] && x[1],
             |world, i| {
