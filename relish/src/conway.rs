@@ -171,7 +171,7 @@ mod tests {
 
         let orig_world = world.clone();
 
-        let mut ca = ConwayCellularAutomaton(world, false).expect("Construction failed");
+        let mut ca = ConwayCellularAutomaton(world, true).expect("Construction failed");
 
         let mut next_world = vec![vec![false; 10]; 10];
 
